@@ -1,28 +1,28 @@
 const http = require("http");
 const socket = require("socket.io");
 
+const { dispatch, subscribe } = require("./gameLogic");
+
 const port = 5465;
 
 const app = http.createServer(() => {});
 const io = socket(app);
-let players = [];
 
 io.on("connection", (socket) => {
-  let currentPlayer = null;
+  subscribe((state) => {
+    socket.broadcast.emit("SYNC", state);
+  });
 
   socket.on("addPlayer", (player) => {
-    currentPlayer = player;
-    players.push(player);
-
-    socket.broadcast.emit("newPlayer", player);
+    dispatch({ type: "NEW_PLAYER", payload: player });
   });
 
   socket.on("playerTurn", (payload) => {
-    socket.broadcast.emit("serverTurn", payload);
+    dispatch({ type: "PLAY", payload });
   });
 
   socket.on("disconnect", () => {
-    players = players.filter((player) => player.id !== currentPlayer.id);
+    dispatch({ type: "DISCONNECT_PLAYER", payload: { id: socket.id } });
   });
 });
 
